@@ -140,6 +140,11 @@
 	  -webkit-animation-delay: -1.0s;
 	  animation-delay: -1.0s;
 	}
+	.BMap_geolocationContainer{
+		position: relative;
+		left: 20px;
+		bottom: 20px;
+	}
 	 
 	@-webkit-keyframes bounce {
 	  0%, 100% { -webkit-transform: scale(0.0) }
@@ -155,12 +160,21 @@
 	    -webkit-transform: scale(1.0);
 	  }
 	}
+	#r-result{position:fixed;
+		bottom:0px;
+		height:200px;
+		width:100%;
+		overflow: auto;
+		background: white;
+	}
      
     </style>
+	}
 </head>
 <body>
    <div id="container" >
        <div class="map" id="map"></div>
+       <div id="r-result"></div>
        <div class="loaddingBox" id="loaddingBox">
        	<div class="loadding">
        		<div class="loaddingImg">
@@ -173,6 +187,7 @@
 
        			<span>请稍后,正在定位中...</span>
        		</div>
+
        	</div>
        </div>
    </div>
@@ -238,28 +253,59 @@
 	 	var map = new BMap.Map("map");                // 创建地图实例  
 		var point = new BMap.Point(116.404, 39.915);  // 创建点坐标  
 		map.centerAndZoom(point, 15); 
+		var mk = new BMap.Marker(point);
+		map.addOverlay(mk);
+		map.panTo(point);
+		map.enableScrollWheelZoom();   //启用滚轮放大缩小，默认禁用
+	    map.enableContinuousZoom();    //启用地图惯性拖拽，默认禁用
 		map.addControl(new BMap.NavigationControl());    
 		map.addControl(new BMap.ScaleControl());    
 		map.addControl(new BMap.OverviewMapControl());    
 		map.addControl(new BMap.MapTypeControl());    
 		map.setCurrentCity("北京"); // 仅当设置城市信息时，MapTypeControl的切换功能才能可用 
+		LoadingAnimated(true);//关闭加载动画
+
 		/** 获取地址位置 通过游览器 (定的莫名奇怪，坐标转换也没有用。。。。)*/
-		var geolocation = new BMap.Geolocation();
-		geolocation.getCurrentPosition(function(result){
-			if(this.getStatus() == BMAP_STATUS_SUCCESS){
-				LoadingAnimated(true);//关闭加载动画
-				var mk = new BMap.Marker(result.point);
-				map.addOverlay(mk);
-				map.panTo(result.point);
-				latitude = result.point.lat-0;
-				longitude = result.point.lng-0;
-				
-			}
-			else {
-				console.log('failed'+this.getStatus());
-				alert('获取您当前的地址位置失败！请查看您是否开启位置等相关权限！');
-			}        
-		},{enableHighAccuracy: true})
+		// var geolocation = new BMap.Geolocation();
+		// geolocation.getCurrentPosition(function(result){
+		// 	if(this.getStatus() == BMAP_STATUS_SUCCESS){
+		// 		LoadingAnimated(true);//关闭加载动画
+		// 		var mk = new BMap.Marker(result.point);
+		// 		map.addOverlay(mk);
+		// 		map.panTo(result.point);
+		// 		latitude = result.point.lat-0;
+		// 		longitude = result.point.lng-0;
+		// 		getResult();
+		// 		// console.log(result);
+		// 	}
+		// 	else {
+		// 		console.log('failed'+this.getStatus());
+		// 		alert('获取您当前的地址位置失败！请查看您是否开启位置等相关权限！');
+		// 	}        
+		// },{enableHighAccuracy: true})
+		//定位控件
+		 // 添加定位控件
+		  var geolocationControl = new BMap.GeolocationControl();
+		  geolocationControl.addEventListener("locationSuccess", function(e){
+		    // 定位成功事件
+		    var address = '';
+		    address += e.addressComponent.province;
+		    address += e.addressComponent.city;
+		    address += e.addressComponent.district;
+		    address += e.addressComponent.street;
+		    address += e.addressComponent.streetNumber;
+		    console.log(e);
+		  });
+		  geolocationControl.addEventListener("locationError",function(e){
+		    // 定位失败事件
+		    alert(e.message);
+		  });
+		  map.addControl(geolocationControl);
+		  // search 餐饮
+		  var local = new BMap.LocalSearch(map, {
+		renderOptions: {map: map, panel: "r-result"}
+		});
+		local.search("餐饮");
 		//搜素附近的小吃
 		function getResult(){
 			var point = new BMap.Point(longitude, latitude);
